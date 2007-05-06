@@ -19,15 +19,20 @@ except ImportError, e:
           "\n%s\nPlease install PyGame from http://www.pygame.org/" % e
     sys.exit(1)
 
-LOG_FILE = file("_log", "w")
 DEFAULT_SIZE = (640, 480)
-BLACK = (0, 0, 0)
-WHITE = (255, 255, 255)
+BLACK  = (  0,   0,   0)
+WHITE  = (255, 255, 255)
+BLUE   = (  0,   0, 255)
+RED    = (255,   0,   0)
+ORANGE = (255, 128,   0)
+
+LOGS = [ file("_log", "w") ]
+if not "w" in os.path.basename(sys.executable):
+    LOGS.append(sys.stderr)  # No stderr under pythonw
 
 def Log(msg, *params):
-    print >> sys.stderr, msg % params
-    if LOG_FILE:
-        print >> LOG_FILE, msg % params
+    for log in LOGS:
+        print >> log, msg % params
 
 class ImageList(object):
     def __init__(self):
@@ -68,8 +73,8 @@ class GameLogic(object):
         self._images = images
         self._sx = screen.get_width()
         self._sy = screen.get_height()
-        self._scale_min = self._sy / 16
-        self._scale_max = self._sy / 6
+        self._scale_min = self._sy / 8
+        self._scale_max = self._sy / 4
         self._run = True
         self._esc_count = 0
 
@@ -80,7 +85,7 @@ class GameLogic(object):
         This takes the largest dimension and compute a factor so that it
         fit in the random range[scale_min, scale_max].
         """
-        if h > w:
+        if w > h:
             h = w
         s = random.randint(self._scale_min, self._scale_max)
         return float(s) / float(h)
@@ -118,8 +123,8 @@ class GameLogic(object):
                 pygame.display.flip()
 
     def Clear(self):
-        self._screen.fill(BLACK)
-        pygame.draw.rect(self._screen, WHITE, self._screen.get_rect(), 6)
+        self._screen.fill(WHITE)
+        pygame.draw.rect(self._screen, ORANGE, self._screen.get_rect(), 6)
         pygame.display.flip()
 
     def Loop(self):
@@ -160,8 +165,7 @@ if __name__ == "__main__":
         Main()
     except Exception, e:
         Log("Unhandled top-level exception: %s", e)
-        traceback.print_exc(file=sys.stderr)
-        if LOG_FILE:
-            traceback.print_exc(file=LOG_FILE)
+        for log in LOGS:
+            traceback.print_exc(file=log)
         raise
 
