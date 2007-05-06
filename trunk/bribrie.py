@@ -10,6 +10,7 @@ License: GPL
 import os
 import sys
 import random
+import traceback
 
 try:
     import pygame
@@ -18,12 +19,15 @@ except ImportError, e:
           "\n%s\nPlease install PyGame from http://www.pygame.org/" % e
     sys.exit(1)
 
+LOG_FILE = file("_log", "w")
 DEFAULT_SIZE = (640, 480)
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 
 def Log(msg, *params):
     print >> sys.stderr, msg % params
+    if LOG_FILE:
+        print >> LOG_FILE, msg % params
 
 class ImageList(object):
     def __init__(self):
@@ -50,7 +54,11 @@ class ImageList(object):
         k = self._images.keys()[i]
         if self._images[k] == None:
             Log("Load image (%d) %s", i, k)
-            self._images[k] = pygame.image.load(k)
+            try:
+                self._images[k] = pygame.image.load(k)
+            except Errno, e:
+                Log("Image load FAILED: %s for %s", e, k)
+                return None
         return self._images[k]
 
 
@@ -83,6 +91,8 @@ class GameLogic(object):
         position on the screen.
         """
         img = self._images.GetImage()
+        if img is None:
+            return
         w, h = img.get_size()
         s = self.RescaleFactor(w, h)
         img = pygame.transform.rotozoom(img, 0, s)  # angle=0, scale=s
@@ -146,4 +156,12 @@ def Main():
     return 0
 
 if __name__ == "__main__":
-    Main()
+    try:
+        Main()
+    except Exception, e:
+        Log("Unhandled top-level exception: %s", e)
+        traceback.print_exc(file=sys.stderr)
+        if LOG_FILE:
+            traceback.print_exc(file=LOG_FILE)
+        raise
+
