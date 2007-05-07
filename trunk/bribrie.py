@@ -12,13 +12,7 @@ import sys
 import random
 import traceback
 
-try:
-    import pygame
-except ImportError, e:
-    print >> sys.stderr, \
-          "\n%s\nPlease install PyGame from http://www.pygame.org/" % e
-    sys.exit(1)
-
+FULLSCREEN = True  # Set to False for debugging
 DEFAULT_SIZE = (640, 480)
 BLACK  = (  0,   0,   0)
 WHITE  = (255, 255, 255)
@@ -34,13 +28,29 @@ def Log(msg, *params):
     for log in LOGS:
         print >> log, msg % params
 
+
+try:
+    import pygame
+except ImportError, e:
+    Log("%s. Please install PyGame from http://www.pygame.org/", e)
+    sys.exit(1)
+
+try:
+    import Numeric
+    import pygame.surfarray as surfarray
+except ImportError, e:
+    Log("%s. Please install old-Numeric from http://numpy.scipy.org/", e)
+    sys.exit(1)
+
+
 class ImageList(object):
     def __init__(self):
         self._images = {}
     
-    def GetImageList(self, top_dir=".", extensions=[".png"]):
+    def InitImageList(self, top_dir=".", extensions=[".png"]):
         """
         Lists all files in or under the current directory.
+        Returns self, the sprite.
         """
         for dirpath, dirnames, filenames in os.walk(top_dir):
             for filename in filenames:
@@ -48,23 +58,81 @@ class ImageList(object):
                 if ext in extensions:
                     self._images[os.path.join(dirpath, filename)] = None
         Log("Loaded %s images", len(self._images))
+        return self
 
-    def GetImage(self):
+    def GetSprite(self):
         """
-        Selects a random image and returns its pygame image
+        Selects a random image and returns a new Sprite.
+        Returns None on error.
         """
         n = len(self._images)
         assert(n > 0)
         i = random.randint(0, n - 1)
         k = self._images.keys()[i]
-        if self._images[k] == None:
+        img = self._images[k]
+        if not img:
             Log("Load image (%d) %s", i, k)
             try:
-                self._images[k] = pygame.image.load(k)
+                img = self._images[k] = pygame.image.load(k)
             except Errno, e:
                 Log("Image load FAILED: %s for %s", e, k)
                 return None
-        return self._images[k]
+        if img:
+            return Sprite(img)
+        return None
+
+
+class Sprite(object):
+    def __init__(self, image):
+        self._image = image
+
+    def InitScalePos(self, horiz, sx, sy):
+        """
+        Setup the initial position and scale of a sprite.
+        Parameters:
+        - horiz (float): hint on the horizontal position of the sprite
+          on the screen. 0.0=to the left, 1.0=to the right.
+        - sx, sy: size of screen in pixel.
+        Returns self, the sprite.
+        """
+        w, h = self._image.get_size()
+        s = random.randint(sy / 8, sy / 4)
+        if h > w:
+            s = float(s) / float(h)
+        else:
+            s = float(s) / float(w)
+        self._image = pygame.transform.rotozoom(self._image, 0, s) # angle=0
+        w, h = self._image.get_size()
+        x = random.randint(0, sx - w)
+        y = random.randint(0, sy - h)
+        self._pos = (x, y)
+        self._alpha = 256
+        return self
+
+    def Dim(self):
+        """
+        Dim the sprite.
+        Returns True if the sprite is still visible.
+        """
+        if self._alpha > 0:
+            self._alpha -= 16
+            self._ChangeAlpha(self._image, self._alpha - 1)
+        return self._alpha > 0
+
+    def _ChangeAlpha(self, surface, mask):
+        """
+        Masks the alpha channel of the surface.
+        """
+        channel = surfarray.pixels_alpha(surface)  # lock surface
+        temp = Numeric.bitwise_and(channel.astype(Numeric.Int32), mask)
+        channel[:] = temp.astype(Numeric.UnsignedInt8)
+        del channel  # unlocks surface
+
+    def Draw(self, dest):
+        """
+        Draws the sprite on the 'dest'ination surface.
+        """
+        dest.blit(self._image, self._pos)
 
 
 class GameLogic(object):
@@ -73,40 +141,32 @@ class GameLogic(object):
         self._images = images
         self._sx = screen.get_width()
         self._sy = screen.get_height()
-        self._scale_min = self._sy / 8
-        self._scale_max = self._sy / 4
         self._run = True
         self._esc_count = 0
+        self._sprites = []
 
-    def RescaleFactor(self, w, h):
-        """
-        Compute rescale factor for an image to blit.
-        Imput: w,h is the size of the image in pixels.
-        This takes the largest dimension and compute a factor so that it
-        fit in the random range[scale_min, scale_max].
-        """
-        if w > h:
-            h = w
-        s = random.randint(self._scale_min, self._scale_max)
-        return float(s) / float(h)
-
-    def InsertRandomImage(self):
+    def _AddSprite(self):
         """
         Get a random image from the image list and blits it at a random
         position on the screen.
         """
-        img = self._images.GetImage()
-        if img is None:
-            return
-        w, h = img.get_size()
-        s = self.RescaleFactor(w, h)
-        img = pygame.transform.rotozoom(img, 0, s)  # angle=0, scale=s
-        w, h = img.get_size()
-        x = random.randint(0, self._sx - w)
-        y = random.randint(0, self._sy - h)
-        self._screen.blit(img, (x, y))
+        sprite = self._images.GetSprite()
+        if sprite:
+            sprite.InitScalePos(.5, self._sx, self._sy)
+            self._sprites.append(sprite)
+            Log("Add Sprite: %s, Total %d", sprite, len(self._sprites))
 
-    def ProcessEvent(self, event):
+    def _DimSprites(self):
+        for s in self._sprites:
+            if not s.Dim():
+                self._sprites.remove(s)
+                Log("Remove Sprite: %s, Total %d", s, len(self._sprites))
+
+    def _DrawSprites(self):
+        for s in self._sprites:
+            s.Draw(self._screen)
+
+    def _ProcessEvent(self, event):
         # Log("Event: %s", repr(event))
         if event.type == pygame.QUIT:
             self._run = False
@@ -119,28 +179,31 @@ class GameLogic(object):
                     Log("Ready to quit... %d more", 5 - self._esc_count)
             else:
                 self._esc_count = 0
-                self.InsertRandomImage()
-                pygame.display.flip()
+                self._DimSprites()
+                self._AddSprite()
 
-    def Clear(self):
+    def _Clear(self):
         self._screen.fill(WHITE)
         pygame.draw.rect(self._screen, ORANGE, self._screen.get_rect(), 6)
-        pygame.display.flip()
 
     def Loop(self):
-        self.Clear()
+        self._Clear()
+        pygame.display.flip()
         pygame.event.set_grab(True)
         while self._run:
+            self._Clear()
             event = pygame.event.wait()
-            self.ProcessEvent(event)
+            self._ProcessEvent(event)
+            self._DrawSprites()
+            pygame.display.flip()
         pygame.event.set_grab(False)
         
 
 def Main():
     random.seed()
     pygame.init()
-    modes = pygame.display.list_modes(16)
-    if modes == -1:
+    modes = FULLSCREEN and pygame.display.list_modes(32) or -1
+    if FULLSCREEN and modes == -1:
         Log("No 16 bit options...")
         modes = pygame.display.list_modes()
     if not isinstance(modes, list) or len(modes) == 0:
@@ -152,8 +215,7 @@ def Main():
     pygame.display.set_caption("Brie")
     screen = pygame.display.get_surface()
 
-    images = ImageList()
-    images.GetImageList()
+    images = ImageList().InitImageList()
 
     g = GameLogic(screen, images)
     g.Loop()
