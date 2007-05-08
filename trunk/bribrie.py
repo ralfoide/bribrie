@@ -12,13 +12,18 @@ import sys
 import random
 import traceback
 
-FULLSCREEN = True  # Set to False for debugging
+FULLSCREEN = False  # Set to False for debugging
 DEFAULT_SIZE = (640, 480)
 BLACK  = (  0,   0,   0)
 WHITE  = (255, 255, 255)
 BLUE   = (  0,   0, 255)
 RED    = (255,   0,   0)
 ORANGE = (255, 128,   0)
+
+KEY_POS = [ "~!@#$%^&*()_+", "`1234567890-=",
+            "qwertyuiop[]\\", "QWERTYUIOP{}|",
+            "asdfghjkl;'", "ASDFGHJKL:\"",
+            "zxcvbnm,./?", "ZXCVBNM<>?" ]
 
 LOGS = [ file("_log", "w") ]
 if not "w" in os.path.basename(sys.executable):
@@ -103,7 +108,7 @@ class Sprite(object):
             s = float(s) / float(w)
         self._image = pygame.transform.rotozoom(self._image, 0, s) # angle=0
         w, h = self._image.get_size()
-        x = random.randint(0, sx - w)
+        x = int((sx - w) * horiz)
         y = random.randint(0, sy - h)
         self._pos = (x, y)
         self._alpha = 256
@@ -145,14 +150,14 @@ class GameLogic(object):
         self._esc_count = 0
         self._sprites = []
 
-    def _AddSprite(self):
+    def _AddSprite(self, horiz_coef):
         """
         Get a random image from the image list and blits it at a random
         position on the screen.
         """
         sprite = self._images.GetSprite()
         if sprite:
-            sprite.InitScalePos(.5, self._sx, self._sy)
+            sprite.InitScalePos(horiz_coef, self._sx, self._sy)
             self._sprites.append(sprite)
             Log("Add Sprite: %s, Total %d", sprite, len(self._sprites))
 
@@ -178,9 +183,30 @@ class GameLogic(object):
                 else:
                     Log("Ready to quit... %d more", 5 - self._esc_count)
             else:
+                horiz_coef = self._KeyHorizCoef(event.key)
                 self._esc_count = 0
                 self._DimSprites()
-                self._AddSprite()
+                self._AddSprite(horiz_coef)
+
+    def _KeyHorizCoef(self, ascii):
+        """
+        Returns an horizontal coeficient in [0,1) range depending on
+        which key was pressed.
+        """
+        try:
+            char = chr(ascii)
+            for s in KEY_POS:
+                i = s.find(char)
+                if i >= 0:
+                    k = (float(i) + random.random()) / float(len(s))
+                    Log("Key %s: %s in %s => %s", char, i, s, k)
+                    return k
+        except ValueError:
+            # Not an ascii, use a random pos
+            pass
+        k = random.random()
+        Log("Key default(%s) => %s", ascii, k)
+        return k
 
     def _Clear(self):
         self._screen.fill(WHITE)
