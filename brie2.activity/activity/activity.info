@@ -1,7 +1,7 @@
 [Activity]
-name = Ralf2 
+name = Brie2 
 activity_version = 1
 host_version = 1
-service_name = org.laptop.community.Ralf2
+service_name = com.alfray.Brie2
 icon = activity
 exec = sugar-activity activity.Activity

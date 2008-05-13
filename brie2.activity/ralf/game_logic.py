@@ -14,6 +14,19 @@ BLUE   = (  0,   0, 255)
 RED    = (255,   0,   0)
 ORANGE = (255, 128,   0)
 
+class Target(object):
+    def __init__(self, screen, xcenter, ycenter, radius, color):
+        self._screen = screen
+        self._center = (xcenter, ycenter)
+        self._radius = radius
+        self._color = color
+        self._image = None
+        self._sound = None
+    
+    def Draw(self):
+        pygame.draw.circle(self._screen, self._color, self._center, self._radius, 6)
+ 
+
 class GameLogic(object):
     def __init__(self, log, screen, images):
         self._log = log
@@ -25,6 +38,13 @@ class GameLogic(object):
         self._scale_max = self._sy / 4
         self._run = True
         self._esc_count = 0
+        
+        sx4 = self._sx / 4
+        sy2 = self._sy / 2
+        self._targets = [
+             Target(screen, sx4    , sy2, sx4 * 0.6, BLUE),
+             Target(screen, sx4 * 3, sy2, sx4 * 0.6, RED),
+             ]
 
     def RescaleFactor(self, w, h):
         """
@@ -70,9 +90,14 @@ class GameLogic(object):
                 self.InsertRandomImage()
                 pygame.display.flip()
 
+    def DrawTargets(self):
+        for t in self._targets:
+            t.Draw()
+
     def Clear(self):
         self._screen.fill(WHITE)
         pygame.draw.rect(self._screen, ORANGE, self._screen.get_rect(), 6)
+        self.DrawTargets()
         pygame.display.flip()
 
     def Loop(self):

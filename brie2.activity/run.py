@@ -13,7 +13,7 @@ import olpcgames.pausescreen
 import ralf.image_list
 import ralf.game_logic
 
-log = logging.getLogger("Ralf2 run")
+log = logging.getLogger("Brie2 run")
 log.setLevel(logging.DEBUG)
 
 def main():
