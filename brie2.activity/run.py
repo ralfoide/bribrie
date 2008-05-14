@@ -7,6 +7,7 @@ import os
 import logging 
 
 import pygame
+import pygame.font
 import olpcgames
 import olpcgames.pausescreen
 
@@ -30,30 +31,19 @@ def main():
     clock = pygame.time.Clock()
 
     base_dir = os.path.dirname(__file__)
+
+    pygame.font.init()
+    #if pygame.font.get_init():
+    #    print "Fonts", "\n".join(pygame.font.get_fonts())
+
+    try:
+        images = ralf.image_list.ImageList(log)
+        images.GetImageList(os.path.join(base_dir, "tuxpaint-stamps-2006.10.21"))
     
-    images = ralf.image_list.ImageList(log)
-    images.GetImageList(os.path.join(base_dir, "tuxpaint-stamps-2006.10.21"))
-
-    game = ralf.game_logic.GameLogic(log, screen, images)
-    game.Loop()
-
-    running = False
-    while running:
-        screen.fill( (0,0,128) )
-        milliseconds = clock.tick(25) # maximum number of frames per second
-        
-        # Event-management loop with support for pausing after X seconds (20 here)
-        events = olpcgames.pausescreen.get_events()
-        # Now the main event-processing loop
-        if events:
-            for event in events:
-                log.debug("Event: %s", event)
-                if event.type == pygame.QUIT:
-                    running = False
-                elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_ESCAPE:
-                        running = False
-            pygame.display.flip()
+        game = ralf.game_logic.GameLogic(log, screen, images)
+        game.Loop()
+    finally:
+        pygame.font.quit()
 
 if __name__ == "__main__":
     logging.basicConfig()

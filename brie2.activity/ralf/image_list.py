@@ -39,3 +39,6 @@ class ImageList(object):
                 self._log.exception("Image load FAILED: %s", k)
                 return None
         return self._images[k]
+
+    def Count(self):
+        return len(self._images)
