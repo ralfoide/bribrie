@@ -4,6 +4,7 @@ Game Logic
 """
 
 import math
+import time
 import random
 import pygame
 import pygame.font
@@ -184,4 +185,6 @@ class GameLogic(object):
                 for event in events:
                     # self._log.debug("Event: %s", event)
                     self.ProcessEvent(event)
+            else:
+                time.sleep(0.1);
 
