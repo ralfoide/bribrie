@@ -56,6 +56,8 @@ class Target(object):
         """
         old = self._selected
         self._selected = selected
+        if self._selected and not old and self._sound:
+            self._sound.play()
         return old != selected
     
     def SetImage(self, image):
@@ -65,13 +67,15 @@ class Target(object):
         self._image = image
         self._image_pos = (self._center[0] - image.get_width()  / 2,
                            self._center[1] - image.get_height() / 2)
- 
+
+    def SetSound(self, sound):
+        self._sound = sound
 
 class GameLogic(object):
-    def __init__(self, log, screen, images):
+    def __init__(self, log, screen, resources):
         self._log = log
         self._screen = screen
-        self._images = images
+        self._resources = resources
         self._sx = screen.get_width()
         self._sy = screen.get_height()
         self._scale_min = self._sy / 2
@@ -109,14 +113,19 @@ class GameLogic(object):
         Get a random image from the image list and blits it at a random
         position on the screen.
         """
-        img1 = self._images.GetImage()
+        ri1 = self._resources.GetResource()
+        img1 = ri1.GetPyImage()
         if img1 is None:
             return
-        img2 = self._images.GetImage()
-        while img1 == img2 and self._images.Count() > 1:
-            img2 = self._images.GetImage()
+        ri2 = self._resources.GetResource()
+        img2 = ri2.GetPyImage()
+        while img1 == img2 and self._resources.Count() > 1:
+            ri2 = self._resources.GetResource()
+            img2 = ri2.GetPyImage()
         self.AssignImage(img1, self._targets[0])
         self.AssignImage(img2, self._targets[1])
+        self._targets[0].SetSound(ri1.GetPySound())
+        self._targets[1].SetSound(ri2.GetPySound())
 
     def AssignImage(self, img, target):        
         w, h = img.get_size()

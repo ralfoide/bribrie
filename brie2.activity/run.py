@@ -7,11 +7,10 @@ import os
 import logging 
 
 import pygame
-import pygame.font
 import olpcgames
 import olpcgames.pausescreen
 
-import ralf.image_list
+import ralf.resource_list
 import ralf.game_logic
 
 log = logging.getLogger("Brie2 run")
@@ -33,16 +32,16 @@ def main():
     base_dir = os.path.dirname(__file__)
 
     pygame.font.init()
-    #if pygame.font.get_init():
-    #    print "Fonts", "\n".join(pygame.font.get_fonts())
+    pygame.mixer.init()
 
     try:
-        images = ralf.image_list.ImageList(log)
-        images.GetImageList(os.path.join(base_dir, "tuxpaint-stamps-2006.10.21"))
+        resources = ralf.resource_list.ResourceList(log)
+        resources.GetResources(base_dir)
     
-        game = ralf.game_logic.GameLogic(log, screen, images)
+        game = ralf.game_logic.GameLogic(log, screen, resources)
         game.Loop()
     finally:
+        pygame.mixer.quit()
         pygame.font.quit()
 
 if __name__ == "__main__":
