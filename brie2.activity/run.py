@@ -31,6 +31,8 @@ def main():
 
     base_dir = os.path.dirname(__file__)
 
+    SetStandardCursor(base_dir)
+
     pygame.font.init()
     pygame.mixer.init()
 
@@ -43,6 +45,15 @@ def main():
     finally:
         pygame.mixer.quit()
         pygame.font.quit()
+
+def SetStandardCursor(base_dir):
+    """
+    Reference: http://wiki.laptop.org/go/Sugar_Standard_Icons
+    """
+    icon = os.path.join(base_dir, "data", "arrow.xbm")
+    mask = os.path.join(base_dir, "data", "arrow_mask.xbm")
+    a, b, c, d = pygame.cursors.load_xbm(icon, mask)
+    pygame.mouse.set_cursor(a, b, c, d)
 
 if __name__ == "__main__":
     logging.basicConfig()
