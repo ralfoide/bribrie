@@ -8,6 +8,7 @@ import time
 import random
 import pygame
 import pygame.font
+import olpcgames
 import olpcgames.pausescreen
 
 
@@ -81,6 +82,7 @@ class GameLogic(object):
         self._scale_min = self._sy / 2
         self._scale_max = self._sy / 2
         self._run = True
+        self._fullscreen = False
         self._esc_count = 0
         
         sx4 = self._sx / 4
@@ -91,7 +93,8 @@ class GameLogic(object):
         
         self._font = None
         if pygame.font.get_init():
-            self._font = pygame.font.SysFont("tahoma", self._sy / 6, bold=False, italic=False)
+            self._font = pygame.font.SysFont("tahoma", self._sy / 6,
+                                             bold=False, italic=False)
 
     def RescaleFactor(self, w, h):
         """
@@ -147,13 +150,25 @@ class GameLogic(object):
             self._esc_count += 1
             self.RedrawAll()
             if self._esc_count == 5:
-                self._run = False
-            else:
-                self._log.debug("Ready to quit... %d more", 5 - self._esc_count)
+                self.ToggleFullscreen()
+                self._esc_count = 0
         else:
             self._esc_count = 0
             self.SetRandomImage()
             self.RedrawAll()
+
+    def ToggleFullscreen(self):
+        self._fullscreen = not self._fullscreen
+        a = olpcgames.ACTIVITY
+        if a:
+            if self._fullscreen:
+                self._log.info("Fullscreen")
+                a.fullscreen()
+            else:
+                self._log.info("Unfullscreen")
+                a.unfullscreen()
+        else:
+            self._log.warn("No activity found for fullscreen toggle")
 
     def ProcessMouseMotion(self, event):
         x = event.pos[0]
@@ -185,7 +200,6 @@ class GameLogic(object):
         pygame.display.flip()
 
     def Loop(self):
-        self._run = True
         self.RedrawAll()
         while self._run:
             # Event-management loop with support for pausing after X seconds (20 here)
@@ -195,5 +209,5 @@ class GameLogic(object):
                     # self._log.debug("Event: %s", event)
                     self.ProcessEvent(event)
             else:
-                time.sleep(0.1);
+                time.sleep(0.1)
 
