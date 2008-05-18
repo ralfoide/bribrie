@@ -20,6 +20,8 @@ RED    = (255,   0,   0)
 RED1   = (255, 128, 128)
 ORANGE = (255, 128,   0)
 
+NUM_ESC = 5
+
 class Target(object):
     def __init__(self, screen, xcenter, ycenter, radius, border, fill):
         self._screen = screen
@@ -82,7 +84,7 @@ class GameLogic(object):
         self._scale_min = self._sy / 2
         self._scale_max = self._sy / 2
         self._run = True
-        self._fullscreen = False
+        self._grab = False
         self._esc_count = 0
         
         sx4 = self._sx / 4
@@ -93,7 +95,7 @@ class GameLogic(object):
         
         self._font = None
         if pygame.font.get_init():
-            self._font = pygame.font.SysFont("tahoma", self._sy / 6,
+            self._font = pygame.font.SysFont("tahoma", self._sy / 16,
                                              bold=False, italic=False)
 
     def RescaleFactor(self, w, h):
@@ -149,26 +151,13 @@ class GameLogic(object):
         if event.key == 27:
             self._esc_count += 1
             self.RedrawAll()
-            if self._esc_count == 5:
-                self.ToggleFullscreen()
+            if self._esc_count == NUM_ESC:
+                self._grab = not self._grab
                 self._esc_count = 0
         else:
             self._esc_count = 0
             self.SetRandomImage()
-            self.RedrawAll()
-
-    def ToggleFullscreen(self):
-        self._fullscreen = not self._fullscreen
-        a = olpcgames.ACTIVITY
-        if a:
-            if self._fullscreen:
-                self._log.info("Fullscreen")
-                a.fullscreen()
-            else:
-                self._log.info("Unfullscreen")
-                a.unfullscreen()
-        else:
-            self._log.warn("No activity found for fullscreen toggle")
+        self.RedrawAll()
 
     def ProcessMouseMotion(self, event):
         x = event.pos[0]
@@ -178,19 +167,32 @@ class GameLogic(object):
             changed = changed or t.Select(t.TestHit(x, y))
         if changed:
             self.RedrawAll()
+        # force mouse off the borders
+        if self._grab:
+            x1 = x
+            y1 = y
+            if x1 < 100: x1 = 100
+            if y1 < 100: y1 = 100
+            w = self._screen.get_width() - 100
+            h = self._screen.get_height() - 100
+            if x1 > w: x1 = w
+            if y1 > h: y1 = h
+            if x != x1 or y != y1:
+                pygame.mouse.set_pos((x1, y1))
 
     def DrawTargets(self):
         for t in self._targets:
             t.Draw()
             
     def DrawEscCount(self):
-        if self._esc_count and self._font:
-            surf = self._font.render(str(self._esc_count),
+        if self._font:
+            msg = "Grab %s" % (self._grab and "On" or "Off")
+            if self._esc_count:
+                msg = "%s - %d" % (msg, NUM_ESC - self._esc_count)
+            surf = self._font.render(msg,
                                      True, # antialias 
                                      RED)
-            x = (self._sx - surf.get_width()) / 2
-            y = (self._sy - surf.get_height()) / 2
-            self._screen.blit(surf, (x, y))
+            self._screen.blit(surf, (2, 2))
 
     def RedrawAll(self):
         self._screen.fill(WHITE)
