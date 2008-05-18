@@ -21,6 +21,7 @@ RED1   = (255, 128, 128)
 ORANGE = (255, 128,   0)
 
 NUM_ESC = 5
+GRAB_PX = 200
 
 class Target(object):
     def __init__(self, screen, xcenter, ycenter, radius, border, fill):
@@ -86,6 +87,10 @@ class GameLogic(object):
         self._run = True
         self._grab = False
         self._esc_count = 0
+
+        self._bounds_rect = (5, GRAB_PX,
+                             self._screen.get_width() - 5 *2,
+                             self._screen.get_height() - GRAB_PX * 2)
         
         sx4 = self._sx / 4
         sy2 = self._sy / 2
@@ -169,16 +174,12 @@ class GameLogic(object):
             self.RedrawAll()
         # force mouse off the borders
         if self._grab:
-            x1 = x
             y1 = y
-            if x1 < 100: x1 = 100
-            if y1 < 100: y1 = 100
-            w = self._screen.get_width() - 100
-            h = self._screen.get_height() - 100
-            if x1 > w: x1 = w
+            if y1 < GRAB_PX: y1 = GRAB_PX
+            h = self._screen.get_height() - GRAB_PX
             if y1 > h: y1 = h
-            if x != x1 or y != y1:
-                pygame.mouse.set_pos((x1, y1))
+            if y != y1:
+                pygame.mouse.set_pos((x, y1))
 
     def DrawTargets(self):
         for t in self._targets:
@@ -196,7 +197,7 @@ class GameLogic(object):
 
     def RedrawAll(self):
         self._screen.fill(WHITE)
-        pygame.draw.rect(self._screen, ORANGE, self._screen.get_rect(), 6)
+        pygame.draw.rect(self._screen, ORANGE, self._bounds_rect, 6)
         self.DrawTargets()
         self.DrawEscCount()
         pygame.display.flip()
