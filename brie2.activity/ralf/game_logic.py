@@ -174,12 +174,9 @@ class GameLogic(object):
             self.RedrawAll()
         # force mouse off the borders
         if self._grab:
-            y1 = y
-            if y1 < GRAB_PX: y1 = GRAB_PX
             h = self._screen.get_height() - GRAB_PX
-            if y1 > h: y1 = h
-            if y != y1:
-                pygame.mouse.set_pos((x, y1))
+            if y < GRAB_PX or y > h: 
+                pygame.mouse.set_pos((x, h / 2))
 
     def DrawTargets(self):
         for t in self._targets:
